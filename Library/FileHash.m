@@ -56,7 +56,7 @@ typedef struct _FileHashComputationContext {
 
 @implementation FileHash
 
-+ (NSString *)hashOfFileAtPath:(NSString *)filePath withComputationContext:(FileHashComputationContext *)context {
++ (NSString *)hashOfFileAtPath:(NSString *)filePath withComputationContext:(FileHashComputationContext *)context byteCount:(UInt64)bytesToRead {
     NSString *result = nil;
     CFURLRef fileURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (CFStringRef)filePath, kCFURLPOSIXPathStyle, (Boolean)false);
     CFReadStreamRef readStream = fileURL ? CFReadStreamCreateWithFile(kCFAllocatorDefault, fileURL) : NULL;
@@ -66,10 +66,11 @@ typedef struct _FileHashComputationContext {
         // Use default value for the chunk size for reading data.
         const size_t chunkSizeForReadingData = FileHashDefaultChunkSizeForReadingData;
         
-        // Initialize the hash object
+        // Initialize the hash object.
         (*context->initFunction)(context->hashObjectPointer);
         
         // Feed the data to the hash object.
+        UInt64 totalRead = 0;
         BOOL hasMoreData = YES;
         while (hasMoreData) {
             uint8_t buffer[chunkSizeForReadingData];
@@ -79,11 +80,22 @@ typedef struct _FileHashComputationContext {
             } else if (readBytesCount == 0) {
                 hasMoreData = NO;
             } else {
-                (*context->updateFunction)(context->hashObjectPointer, (const void *)buffer, (CC_LONG)readBytesCount);
+                if (bytesToRead) { // Only read up to the given number of bytes.
+                    if (totalRead + readBytesCount > bytesToRead)
+                        readBytesCount = bytesToRead - totalRead;
+                    
+                    totalRead += readBytesCount;
+                    (*context->updateFunction)(context->hashObjectPointer, (const void *)buffer, (CC_LONG)readBytesCount);
+                    
+                    if (totalRead == bytesToRead)
+                        hasMoreData = NO;
+                } else { // Read until we're out of file.
+                    (*context->updateFunction)(context->hashObjectPointer, (const void *)buffer, (CC_LONG)readBytesCount);
+                }
             }
         }
         
-        // Compute the hash digest
+        // Compute the hash digest.
         unsigned char digest[context->digestLength];
         (*context->finalFunction)(digest, context->hashObjectPointer);
         
@@ -107,21 +119,33 @@ typedef struct _FileHashComputationContext {
 }
 
 + (NSString *)md5HashOfFileAtPath:(NSString *)filePath {
+    return [self md5HashOfFileAtPath:filePath byteCount:0];
+}
+
++ (NSString *)md5HashOfFileAtPath:(NSString *)filePath byteCount:(UInt64)bytes {
     FileHashComputationContext context;
     FileHashComputationContextInitialize(context, MD5);
-    return [self hashOfFileAtPath:filePath withComputationContext:&context];
+    return [self hashOfFileAtPath:filePath withComputationContext:&context byteCount:bytes];
 }
 
 + (NSString *)sha1HashOfFileAtPath:(NSString *)filePath {
+    return [self sha1HashOfFileAtPath:filePath byteCount:0];
+}
+
++ (NSString *)sha1HashOfFileAtPath:(NSString *)filePath byteCount:(UInt64)bytes {
     FileHashComputationContext context;
     FileHashComputationContextInitialize(context, SHA1);
-    return [self hashOfFileAtPath:filePath withComputationContext:&context];
+    return [self hashOfFileAtPath:filePath withComputationContext:&context byteCount:bytes];
 }
 
 + (NSString *)sha512HashOfFileAtPath:(NSString *)filePath {
+    return [self sha512HashOfFileAtPath:filePath byteCount:0];
+}
+
++ (NSString *)sha512HashOfFileAtPath:(NSString *)filePath byteCount:(UInt64)bytes {
     FileHashComputationContext context;
     FileHashComputationContextInitialize(context, SHA512);
-    return [self hashOfFileAtPath:filePath withComputationContext:&context];
+    return [self hashOfFileAtPath:filePath withComputationContext:&context byteCount:0];
 }
 
 @end

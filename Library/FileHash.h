@@ -23,7 +23,12 @@
 @interface FileHash : NSObject
 
 + (NSString *)md5HashOfFileAtPath:(NSString *)filePath;
++ (NSString *)md5HashOfFileAtPath:(NSString *)filePath byteCount:(UInt64)bytes;
+
 + (NSString *)sha1HashOfFileAtPath:(NSString *)filePath;
++ (NSString *)sha1HashOfFileAtPath:(NSString *)filePath byteCount:(UInt64)bytes;
+
 + (NSString *)sha512HashOfFileAtPath:(NSString *)filePath;
++ (NSString *)sha512HashOfFileAtPath:(NSString *)filePath byteCount:(UInt64)bytes;
 
 @end
