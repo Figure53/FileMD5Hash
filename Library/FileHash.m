@@ -145,7 +145,7 @@ typedef struct _FileHashComputationContext {
 + (NSString *)sha512HashOfFileAtPath:(NSString *)filePath byteCount:(UInt64)bytes {
     FileHashComputationContext context;
     FileHashComputationContextInitialize(context, SHA512);
-    return [self hashOfFileAtPath:filePath withComputationContext:&context byteCount:0];
+    return [self hashOfFileAtPath:filePath withComputationContext:&context byteCount:bytes];
 }
 
 @end
